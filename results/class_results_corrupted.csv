@@ -1,0 +1,7 @@
+Dataset,Loader,Class,Accuracy Corrupted
+breastmnist_224,Full,0,0.0
+breastmnist_224,Full,1,100.0
+breastmnist_224,LargeSplit,0,48.095238095238095
+breastmnist_224,LargeSplit,1,90.17543859649123
+breastmnist_224,SmallSplit,0,0.0
+breastmnist_224,SmallSplit,1,100.0
