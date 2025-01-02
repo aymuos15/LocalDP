@@ -1,3 +1,0 @@
-1. One run with "one-pixel-perturbation" for varying percentages.
-	- The attack here needs the prediction, so it does not even suite our setting right?
-2. Our localdp run with set bounds.
