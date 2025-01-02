@@ -1,4 +1,5 @@
-from runner import train, test
+from train import train
+from test import test
 from model import Net_28
 from load import (
     load_and_prepare_data,
@@ -73,6 +74,7 @@ def main():
     }
 
     dataset_name = CONFIG['data_path'].split('/')[-1].split('.')[0]
+    print('DATA: ', dataset_name)
     class_results = []
     overall_results = []
     sample_info = []
