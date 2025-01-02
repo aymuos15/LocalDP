@@ -1,12 +1,16 @@
-# Local Diffrential Privacy
+# LocalDP: Pixel Level Diffrential Privacy
 
 Developed by Rakshit Naidu and Soumya
 
-To test with different types of "noisy loaders" look into `main.py`
+### To run: 
+1. Clone the repo
+2. `cd localdp`
+3. Add the datasets in the datasets variable in the runner.sh 
+4. `./runner.sh`
 
-`main.py` runs as is now by itself and generate tables.
+Look into configs to make minimal hyperparameter changes.
 
-# To-dos
-[ ] Make code more pythonic
+### To get datasetwise results:
+`python results/analysis.py <dataset name>`
 
-[ ] Make code more modular and easier to run with more extensive configs.
+Ex: `python results/analysis.py breastmnist`
