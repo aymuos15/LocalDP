@@ -31,7 +31,7 @@ def train(model, train_loader, task):
     if task == "multi-label, binary-class":
         criterion = nn.BCEWithLogitsLoss()
     else:
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss() #! Change to MSE (or just add it)
     criterion.to(device)
 
     lr = 0.001

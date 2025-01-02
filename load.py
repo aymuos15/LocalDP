@@ -1,4 +1,4 @@
-import torch
+# import torch
 import numpy as np
 from typing import Dict, Tuple
 from torch.utils.data import DataLoader
@@ -6,14 +6,8 @@ from torchvision import transforms
 from sklearn.model_selection import train_test_split
 
 from config import CONFIG
-from dataset import (
-    MedMNISTDataset,
-    GaussianNoiseTransform,
-    PoissonNoiseTransform,
-    SaltPepperNoiseTransform, 
-    SpeckleNoiseTransform,
-    perturb_image_torch
-)
+from dataset import MedMNISTDataset
+from dataset import PercentagePerturbedDataset
 
 def split_data(images: np.ndarray, labels: np.ndarray, 
                val_ratio: float = 0.1) -> Tuple[np.ndarray, ...]:
@@ -104,110 +98,54 @@ def load_and_prepare_data():
     
     return loaders, class_counts
 
-def load_and_prepare_noisy_data(noise_type: str = 'gaussian', **noise_params):
-    """Load and prepare dataset with noise augmentation."""
-    noise_transforms = {
-        'gaussian': GaussianNoiseTransform,
-        'salt_pepper': SaltPepperNoiseTransform,
-        'poisson': PoissonNoiseTransform,
-        'speckle': SpeckleNoiseTransform
-    }
-    
-    if noise_type not in noise_transforms:
-        raise ValueError(f"Unsupported noise type: {noise_type}")
-    
+# Pixel Perturbation
+
+def load_and_prepare_percentage_perturbed_data(perturbation_percentage: float):
+    """Main function to load and prepare percentage-perturbed dataset."""
     images, labels = load_base_data()
-    noise_transform = noise_transforms[noise_type](**noise_params)
-    datasets = create_datasets(images, labels, noise_transform)
+    transform = get_base_transform()
+    datasets = create_percentage_perturbed_datasets(
+        images, labels, transform, perturbation_percentage
+    )
     loaders = prepare_dataloaders(datasets)
     class_counts = get_class_counts(labels)
     
     return loaders, class_counts
 
-def load_and_prepare_data_one_pixel():
-    data = np.load(CONFIG['data_path'])
-    all_images = np.concatenate((data['train_images'], data['test_images']), axis=0)
-    all_labels = np.concatenate((data['train_labels'], data['test_labels']), axis=0)
+def create_perturbation_vector(image_shape, num_pixels=1):
+    """Create perturbation vector for a single image."""
+    height, width = image_shape[:2]
+    num_channels = image_shape[2] if len(image_shape) > 2 else 1
     
-    train_images, test_images, train_labels, test_labels = train_test_split(
-        all_images, all_labels, test_size=CONFIG['split_ratio'], random_state=42
-    )
+    # Randomly select pixel positions
+    x_pos = np.random.randint(0, height, num_pixels)
+    y_pos = np.random.randint(0, width, num_pixels)
     
-    # Generate perturbation vectors for all images
-    n_pixels_to_perturb = 1  # Perturb one pixel
-    n_images = len(all_images)
-    
-    # Generate perturbation vectors considering image dimensions
-    img_height, img_width = train_images.shape[1:3]
-    perturbation_vectors = torch.cat([
-        torch.randint(0, img_height, (n_images, n_pixels_to_perturb, 1)),  # x positions
-        torch.randint(0, img_width, (n_images, n_pixels_to_perturb, 1)),   # y positions
-        torch.randint(0, 256, (n_images, n_pixels_to_perturb, 3)),         # RGB values
-    ], dim=2).reshape(n_images, -1)
-    
-    # Convert images to torch tensors
-    train_images = torch.from_numpy(train_images).float()
-    test_images = torch.from_numpy(test_images).float()
-    
-    # Apply perturbation to all images
-    perturbed_train_images = []
-    for i, img in enumerate(train_images):
-        perturbed = perturb_image_torch(perturbation_vectors[i].unsqueeze(0), img.unsqueeze(0))
-        perturbed_train_images.append(perturbed)
-    train_images = torch.stack(perturbed_train_images)
-    
-    perturbed_test_images = []
-    for i, img in enumerate(test_images):
-        perturbed = perturb_image_torch(perturbation_vectors[i+len(train_images)].unsqueeze(0), img.unsqueeze(0))
-        perturbed_test_images.append(perturbed)
-    test_images = torch.stack(perturbed_test_images)
-
-        # Modify these lines to fix dimensions:
-    train_images = torch.stack(perturbed_train_images).squeeze(1)  # Remove extra dimension
-    test_images = torch.stack(perturbed_test_images).squeeze(1)    # Remove extra dimension
-    
-    # For grayscale, convert RGB to single channel
-    if CONFIG['num_channels'] == 1:
-        train_images = train_images.mean(dim=-1, keepdim=True)
-        test_images = test_images.mean(dim=-1, keepdim=True)
-        train_images = train_images.permute(0, 3, 1, 2)  # [B, C, H, W]
-        test_images = test_images.permute(0, 3, 1, 2)    # [B, C, H, W]
+    # Generate random values for the selected pixels
+    if num_channels == 1:
+        values = np.random.randint(0, 2, num_pixels)
+        perturbation = np.column_stack((x_pos, y_pos, values))
     else:
-        train_images = train_images.permute(0, 3, 1, 2)  # [B, C, H, W]
-        test_images = test_images.permute(0, 3, 1, 2)    # [B, C, H, W]
+        values = np.random.randint(0, 2, (num_pixels, num_channels))
+        perturbation = np.column_stack((x_pos, y_pos, values))
     
-    split = int(len(train_images) * 0.9)
-    large_split_images = train_images[:split]
-    small_split_images = train_images[split:]
-    large_split_labels = train_labels[:split]
-    small_split_labels = train_labels[split:]
+    return perturbation
 
-    data_transform = transforms.Compose([
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
-
-    def custom_transform(x):
-        if isinstance(x, torch.Tensor):
-            x = x.float() / 255.0
-        else:
-            x = torch.FloatTensor(x) / 255.0
-        return data_transform(x)
-        
-    datasets = {
-        'Full': MedMNISTDataset(train_images, train_labels, transform=custom_transform),
-        'LargeSplit': MedMNISTDataset(large_split_images, large_split_labels, transform=custom_transform),
-        'SmallSplit': MedMNISTDataset(small_split_images, small_split_labels, transform=custom_transform),
-        'test': MedMNISTDataset(test_images, test_labels, transform=custom_transform)
+def create_percentage_perturbed_datasets(
+    images: Dict[str, np.ndarray], 
+    labels: Dict[str, np.ndarray],
+    transform,
+    perturbation_percentage: float
+) -> Dict[str, PercentagePerturbedDataset]:
+    """Create datasets with percentage-wise perturbation."""
+    return {
+        name: PercentagePerturbedDataset(
+            imgs, labs, 
+            perturbation_percentage=perturbation_percentage,
+            transform=transform
+        )
+        for name, (imgs, labs) in zip(
+            ['Full', 'LargeSplit', 'SmallSplit', 'test'],
+            zip(images.values(), labels.values())
+        )
     }
-
-    loaders = {name: DataLoader(dataset, batch_size=CONFIG['batch_size'], shuffle=True)
-               for name, dataset in datasets.items()}
-
-    class_counts = {
-        'Full': np.bincount(train_labels.flatten()),
-        'LargeSplit': np.bincount(large_split_labels.flatten()),
-        'SmallSplit': np.bincount(small_split_labels.flatten()),
-        'test': np.bincount(test_labels.flatten())
-    }
-
-    return loaders, class_counts

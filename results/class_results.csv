@@ -1,6 +1,0 @@
-Dataset,Loader,Class,Accuracy,AUC
-retinamnist,Full,0,100.0,0
-retinamnist,Full,1,0.0,0
-retinamnist,Full,2,0.0,0
-retinamnist,Full,3,0.0,0
-retinamnist,Full,4,0.0,0

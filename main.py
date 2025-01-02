@@ -1,116 +1,118 @@
 from runner import train, test
 from model import Net_28
-from load import load_and_prepare_data, load_and_prepare_noisy_data
-from load import load_and_prepare_data_one_pixel
+from load import (
+    load_and_prepare_data,
+    load_and_prepare_percentage_perturbed_data,
+)
 from config import CONFIG
-
+from typing import Dict, Tuple
 import warnings
 import pandas as pd
 
-import tqdm
-
 warnings.filterwarnings("ignore")
 
-def train_and_evaluate(loader_name):
-    loaders, class_counts = load_and_prepare_data()
-    loaders_noise, _ = load_and_prepare_data_one_pixel()
-    # loaders_noise, _ = load_and_prepare_noisy_data()
-
-    model = Net_28(CONFIG['num_channels'], CONFIG['num_classes']).to(CONFIG['device'])
-    model = train(model, loaders[loader_name], CONFIG['task'])   
-    acc, auc, class_acc = test(model, loaders['test'], CONFIG['task'])
-    del model
-
-    model_noise = Net_28(CONFIG['num_channels'], CONFIG['num_classes']).to(CONFIG['device'])
-    model_noise = train(model_noise, loaders_noise[loader_name], CONFIG['task'])
-    acc_noise, auc_noise, class_acc_noise = test(model_noise, loaders_noise['test'], CONFIG['task'])
+def train_and_evaluate(loader_name: str, loaders_dict: Dict[str, Dict]) -> Tuple:
+    results = {}
     
-    return acc, auc, class_acc, acc_noise, auc_noise, class_acc_noise, class_counts[loader_name], class_counts['test']
+    for loader_type, loader_data in loaders_dict.items():
+        model = Net_28(CONFIG['num_channels'], CONFIG['num_classes']).to(CONFIG['device'])
+        model = train(model, loader_data['loaders'][loader_name], CONFIG['task'])
+        acc, auc, class_acc = test(model, loaders_dict['original']['loaders']['test'], CONFIG['task'])
+        
+        results[loader_type] = {
+            'accuracy': acc,
+            'auc': auc,
+            'class_acc': class_acc
+        }
+        del model
+        
+    return results, loaders_dict['original']['class_counts'][loader_name], loaders_dict['original']['class_counts']['test']
 
 def main():
+    loaders_dict = {
+        'original': {
+            'loaders': load_and_prepare_data()[0],
+            'class_counts': load_and_prepare_data()[1]
+        },
+        'noisy_1pixel': {
+            'loaders': load_and_prepare_percentage_perturbed_data('one')[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data('one')[1]
+        },
+        'noisy_1%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.01)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.01)[1]
+        },
+        'noisy_5%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.05)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.05)[1]
+        },
+        'noisy_10%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.1)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.1)[1]
+        },
+        'noisy_25%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.25)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.25)[1]
+        },
+        'noisy_50%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.5)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.5)[1]
+        },
+        'noisy_75%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.75)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.75)[1]
+        },
+        'noisy_90%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.9)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.9)[1]
+        },
+        'noisy_99%': {
+            'loaders': load_and_prepare_percentage_perturbed_data(0.99)[0],
+            'class_counts': load_and_prepare_percentage_perturbed_data(0.99)[1]
+        }
+    }
+
     dataset_name = CONFIG['data_path'].split('/')[-1].split('.')[0]
     class_results = []
-    class_results_noise = []
     overall_results = []
-    overall_results_noise = []
     sample_info = []
 
-    # for loader_name in ['Full', 'LargeSplit', 'SmallSplit']:
-    # for loader_name in tqdm.tqdm(['Full', 'LargeSplit', 'SmallSplit']):
-    for loader_name in tqdm.tqdm(['Full']):
-        acc, auc, class_acc, acc_noise, auc_noise, class_acc_noise, train_class_counts, test_class_counts = train_and_evaluate(loader_name)
-        
-        for label in range(CONFIG['num_classes']):
-            class_results.append({
-                'Dataset': dataset_name,
-                # 'Loader': loader_name,
-                'Class': label,
-                'Accuracy': class_acc.get(label, 0),
-            })
-        
-        for label in range(CONFIG['num_classes']):
-            class_results_noise.append({
-                'Dataset': dataset_name,
-                # 'Loader': loader_name,
-                'Class': label,
-                'Accuracy LocalDP': class_acc_noise.get(label, 0),
-            })
-
-        overall_results.append({
+    # Get loader types directly from the dictionary
+    results, train_class_counts, test_class_counts = train_and_evaluate('Full', loaders_dict)
+    
+    for label in range(CONFIG['num_classes']):
+        result_dict = {
             'Dataset': dataset_name,
-            # 'Loader': loader_name,
-            'Overall Accuracy': acc,
-            'Overall AUC': auc,
-        })
+            'Split': 'Full',
+            'Class': label,
+        }
+        for loader_type, metrics in results.items():
+            result_dict[f'Accuracy_{loader_type}'] = metrics['class_acc'].get(label, 0)
+        class_results.append(result_dict)
 
-        overall_results_noise.append({
-            'Dataset': dataset_name,
-            # 'Loader': loader_name,
-            'Overall Accuracy LocalDP': acc_noise,
-            'Overall AUC LocalDP': auc_noise,
-        })
+    overall_dict = {
+        'Dataset': dataset_name,
+        'Split': 'Full',
+    }
+    for loader_type, metrics in results.items():
+        overall_dict[f'Overall_Accuracy_{loader_type}'] = metrics['accuracy']
+        overall_dict[f'Overall_AUC_{loader_type}'] = metrics['auc']
+    overall_results.append(overall_dict)
 
-        sample_info.append({
-            # 'Loader': loader_name,
-            'Total Train Samples': int(sum(train_class_counts)),
-            'Total Test Samples': int(sum(test_class_counts)),
-            **{f'Train Samples Class {i}': int(train_class_counts[i]) for i in range(CONFIG['num_classes'])},
-            **{f'Test Samples Class {i}': int(test_class_counts[i]) for i in range(CONFIG['num_classes'])}
-        })
+    sample_info.append({
+        'Split': 'Full',
+        'Total Train Samples': int(sum(train_class_counts)),
+        'Total Test Samples': int(sum(test_class_counts)),
+        **{f'Train Samples Class {i}': int(train_class_counts[i]) for i in range(CONFIG['num_classes'])},
+        **{f'Test Samples Class {i}': int(test_class_counts[i]) for i in range(CONFIG['num_classes'])}
+    })
 
     class_results_df = pd.DataFrame(class_results)
     overall_results_df = pd.DataFrame(overall_results)
-    class_results_noise_df = pd.DataFrame(class_results_noise)
-    overall_results_noise_df = pd.DataFrame(overall_results_noise)
-    sample_info_df = pd.DataFrame(sample_info).T  # Transpose the sample info DataFrame
 
-    # Combine the Class-wise Results DataFrames
-    class_results_df = class_results_df.merge(class_results_noise_df, on=['Dataset', 'Class'], how='outer')
+    class_results_df.to_csv(CONFIG['result_path'] + dataset_name + '_' + 'class_results.csv', index=False)
+    overall_results_df.to_csv(CONFIG['result_path'] + dataset_name + '_' +  'overall_results.csv', index=False)
 
-    # Combine the Overall Results DataFrames
-    overall_results_df = overall_results_df.merge(overall_results_noise_df, on=['Dataset'], how='outer')
-    # Rearrange the columns: 1 2 3 4 5 -> 1 2 4 3 5
-    overall_results_df = overall_results_df[['Dataset', 'Overall Accuracy', 'Overall Accuracy LocalDP', 'Overall AUC', 'Overall AUC LocalDP']]
-    
-    # Display the Class-wise Results DataFrame
-    print("\n")
-    print("Class-wise Results Table:")
-    print(class_results_df.to_string(index=False))
-    print("\n")
-
-    # Display the Overall Results DataFrame
-    print("Overall Results Table:")
-    print(overall_results_df.to_string(index=False))
-    print("\n")
-
-    print(sample_info_df.to_string(index=True))
-
-    # Optionally, you can save the DataFrames to CSV files
-    # class_results_df.to_csv(CONFIG['result_path'] + 'class_results.csv', index=False)
-    # overall_results_df.to_csv(CONFIG['result_path'] + 'overall_results.csv', index=False)
-    # class_results_noise_df.to_csv(CONFIG['result_path'] + 'class_results_noise.csv', index=False)
-    # overall_results_noise_df.to_csv(CONFIG['result_path'] + 'overall_results_noise.csv', index=False)
-    # sample_info_df.to_csv(CONFIG['result_path'] + 'sample_info.csv')
 
 if __name__ == '__main__':
     main()

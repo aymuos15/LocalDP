@@ -6,8 +6,8 @@ CONFIG = {
     "batch_size": 1024,
     "num_epochs": 2,
     "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-    "data_path": '/home/localssk23/.medmnist/bloodmnist.npz',
-    "result_path": '/home/localssk23/splits_mnist/results/',
+    "data_path": '/home/localssk23/.medmnist/breastmnist.npz',
+    "result_path": '/home/localssk23/localdp/results/',
     "split_ratio": 0.1
 }
 
