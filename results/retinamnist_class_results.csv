@@ -1,6 +1,0 @@
-Dataset,Split,Class,Accuracy_original,Accuracy_noisy_1pixel,Accuracy_noisy_1%,Accuracy_noisy_5%,Accuracy_noisy_10%,Accuracy_noisy_25%,Accuracy_noisy_50%,Accuracy_noisy_75%,Accuracy_noisy_90%,Accuracy_noisy_99%
-retinamnist,Full,0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0
-retinamnist,Full,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-retinamnist,Full,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-retinamnist,Full,3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-retinamnist,Full,4,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0

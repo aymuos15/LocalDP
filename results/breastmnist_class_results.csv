@@ -1,3 +1,0 @@
-Dataset,Split,Class,Accuracy_original,Accuracy_noisy_1pixel,Accuracy_noisy_1%,Accuracy_noisy_5%,Accuracy_noisy_10%,Accuracy_noisy_25%,Accuracy_noisy_50%,Accuracy_noisy_75%,Accuracy_noisy_90%,Accuracy_noisy_99%
-breastmnist,Full,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-breastmnist,Full,1,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0

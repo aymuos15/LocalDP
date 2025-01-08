@@ -2,25 +2,7 @@ from torch.utils.data import Dataset
 
 import numpy as np
 
-class MedMNISTDataset(Dataset):
-    def __init__(self, images, labels, transform=None):
-        self.images = images
-        self.labels = labels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        image = self.images[idx]
-        label = self.labels[idx]
-
-        if self.transform:
-            image = self.transform(image)
-        
-        return image, label
-    
-class PercentagePerturbedDataset(Dataset):
+class MNISTPerturbedDataset(Dataset):
     def __init__(self, images, labels, perturbation_percentage, transform=None):
         """
         Args:
@@ -53,7 +35,9 @@ def perturb_image_percentage(img, percent):
     # Calculate number of pixels to perturb
     total_pixels = img.shape[0] * img.shape[1]
     
-    if percent == 'one': #! Single pixel perturbation
+    if percent is None or percent == 0:
+        num_pixels = 0
+    elif percent == 'one': #! Single pixel perturbation
         num_pixels = 1
     else:
         num_pixels = int(total_pixels * percent / 100)
