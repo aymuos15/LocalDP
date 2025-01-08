@@ -7,14 +7,14 @@ HOME = '/home/localssk23/'
 dataset = sys.argv[1] if len(sys.argv) > 1 else 'breastmnist'
 CONFIG = {
    "batch_size": 2048,
-   "num_epochs": 10,
+   "num_epochs": 100,
 
    "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
    
    "data_path": f'{HOME}.medmnist/{dataset}.npz',
    "result_path": f'{HOME}localdp/results/',
 
-   "num_folds": 2
+   "num_folds": 3
 }
 
 # # FOR UNIT TESTING ##

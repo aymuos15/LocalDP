@@ -115,7 +115,7 @@ def main():
    # Configure paths and datasets
    result_path = CONFIG['result_path']
    # dataset_names = ['breastmnist', 'retinamnist', 'bloodmnist']  # Add more datasets as needed
-   dataset_names = ['breastmnist']  # Add more datasets as needed
+   dataset_names = ['breastmnist', 'retinamnist']  # Add more datasets as needed
 
    num_folds = 2
 
