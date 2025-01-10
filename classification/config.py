@@ -17,20 +17,6 @@ CONFIG = {
    "num_folds": 3
 }
 
-# # FOR UNIT TESTING ##
-
-# dataset = 'breastmnist'
-# CONFIG = {
-#    "batch_size": 2,
-#    "num_epochs": 1,
-#    "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-#    "data_path": f'/home/localssk23/.medmnist/{dataset}.npz',
-#    "result_path": '/home/localssk23/localdp/results/',
-#    "num_folds": 1
-# }
-
-# #####################
-
 PERTURBATION_VALUES = {
         'original': None,
         'noisy_1pixel': 'one',
