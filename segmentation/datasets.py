@@ -1,3 +1,5 @@
+import os
+
 from torch.utils.data import Dataset
 import torch
 import numpy as np
@@ -145,3 +147,42 @@ class PerturbedSegmentationDataset(Dataset):
             perturbed_img[x_positions[i], y_positions[i]] = values[i]
             
         return perturbed_img
+
+# PanNuke dataset
+
+class PanNukeDataset(Dataset):
+    def __init__(self, data_dir, fold):
+        """
+        Args:
+            data_dir (str): Base directory containing PanNuke data
+            fold (int): Which fold to use (1, 2, or 3)
+        """
+        self.data_dir = data_dir
+        self.fold = fold
+        
+        # Load the data for the specified fold
+        images_path = os.path.join(data_dir, f"Fold {fold}", "images", f"fold{fold}", "images.npy")
+        masks_path = os.path.join(data_dir, f"Fold {fold}", "masks", f"fold{fold}", "masks.npy")
+        
+        self.images = np.load(images_path)
+        masks = np.load(masks_path)
+        # Take only the last slice of the masks
+        self.masks = masks[:, :, :, -1]
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        # Get image and mask
+        image = self.images[idx]
+        mask = self.masks[idx]
+
+        # Convert to float32 and normalize image to [0, 1]
+        image = image.astype(np.float32) / 255.0
+        mask = mask.astype(np.float32)
+
+        # Convert to PyTorch tensors
+        image = torch.from_numpy(image).permute(2, 0, 1)  # (H, W, C) -> (C, H, W)
+        mask = torch.from_numpy(mask).unsqueeze(0)  # (H, W) -> (1, H, W)
+
+        return image, mask

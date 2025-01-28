@@ -21,5 +21,6 @@ Ex: `python classification/results/analysis.py breastmnist`
 
 `run classification/unittest.ipynb`
 
+# Segmentation
 
 We Now Support segmenation as well. Walkthrough soon!
